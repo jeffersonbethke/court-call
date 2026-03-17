@@ -53,6 +53,20 @@ function calcStats(scores: Score[]) {
   return { wins, losses, points, games, winPct: games > 0 ? wins / games : 0, weeks, avgPtsPerGame };
 }
 
+// ─── Pickleball icon ──────────────────────────────────────────────
+const PickleballIcon = ({ size = 40 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="20" cy="20" r="18" fill="#D4E84A" stroke="#5a6b00" strokeWidth="1.5" />
+    <circle cx="13" cy="13" r="2.4" fill="#5a6b00" opacity="0.45" />
+    <circle cx="27" cy="13" r="2.4" fill="#5a6b00" opacity="0.45" />
+    <circle cx="20" cy="20" r="2.4" fill="#5a6b00" opacity="0.45" />
+    <circle cx="13" cy="27" r="2.4" fill="#5a6b00" opacity="0.45" />
+    <circle cx="27" cy="27" r="2.4" fill="#5a6b00" opacity="0.45" />
+    <circle cx="20" cy="11" r="2.4" fill="#5a6b00" opacity="0.45" />
+    <circle cx="20" cy="29" r="2.4" fill="#5a6b00" opacity="0.45" />
+  </svg>
+);
+
 // ─── Icons ────────────────────────────────────────────────────────
 const Icon = {
   Home: () => (
@@ -255,7 +269,7 @@ export default function HomePage() {
         }}
       >
         <div style={{ textAlign: "center" }}>
-          <p style={{ fontSize: 40, marginBottom: 12 }}>🏓</p>
+          <div style={{ marginBottom: 12 }}><PickleballIcon size={48} /></div>
           <p style={{ fontSize: 17, color: "var(--text-secondary)", fontWeight: 500 }}>
             Loading...
           </p>
@@ -508,7 +522,7 @@ export default function HomePage() {
 
             {currentBoard.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-secondary)" }}>
-                <p style={{ fontSize: 40, margin: "0 0 12px" }}>🏓</p>
+                <div style={{ margin: "0 0 12px" }}><PickleballIcon size={48} /></div>
                 <p style={{ fontSize: 17, fontWeight: 500 }}>
                   {boardView === "today" ? "No games today yet" : "No games recorded yet"}
                 </p>

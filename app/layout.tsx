@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Court Call — Leipers Pickleball",
+  title: "Leipers Fork Pickleball Club",
   description: "Track your pickleball scores. Compete with your crew.",
   icons: { icon: "/favicon.ico" },
 };
