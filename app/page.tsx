@@ -20,6 +20,8 @@ type PlayerStats = Profile & {
   points: number;
   games: number;
   winPct: number;
+  weeks: number;
+  avgPtsPerGame: number;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -46,7 +48,9 @@ function calcStats(scores: Score[]) {
   const losses = scores.filter((s) => s.result === "loss").length;
   const points = scores.reduce((sum, s) => sum + s.points, 0);
   const games = scores.length;
-  return { wins, losses, points, games, winPct: games > 0 ? wins / games : 0 };
+  const weeks = new Set(scores.map((s) => s.played_date)).size;
+  const avgPtsPerGame = games > 0 ? points / games : 0;
+  return { wins, losses, points, games, winPct: games > 0 ? wins / games : 0, weeks, avgPtsPerGame };
 }
 
 // ─── Icons ────────────────────────────────────────────────────────
@@ -105,7 +109,7 @@ export default function HomePage() {
   const [formSaving, setFormSaving] = useState(false);
 
   // ─── Leaderboard view ──────────────────────────
-  const [boardView, setBoardView] = useState<"today" | "season">("today");
+  const [boardView, setBoardView] = useState<"today" | "season" | "pergame">("today");
 
   // ─── Delete confirm ────────────────────────────
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -173,7 +177,7 @@ export default function HomePage() {
     ? allScores.filter((s) => s.user_id === profile.id)
     : [];
 
-  function buildLeaderboard(dateFilter?: string): PlayerStats[] {
+  function buildLeaderboard(dateFilter?: string, sort: "wins" | "pergame" = "wins"): PlayerStats[] {
     return allProfiles
       .map((p) => {
         let scores = allScores.filter((s) => s.user_id === p.id);
@@ -183,6 +187,10 @@ export default function HomePage() {
       })
       .filter((p) => p.games > 0)
       .sort((a, b) => {
+        if (sort === "pergame") {
+          if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+          return b.avgPtsPerGame - a.avgPtsPerGame;
+        }
         if (b.wins !== a.wins) return b.wins - a.wins;
         if (b.points !== a.points) return b.points - a.points;
         return b.winPct - a.winPct;
@@ -191,6 +199,7 @@ export default function HomePage() {
 
   const todayBoard = buildLeaderboard(getToday());
   const seasonBoard = buildLeaderboard();
+  const perGameBoard = buildLeaderboard(undefined, "pergame");
   const todayStats = calcStats(myScores.filter((s) => s.played_date === getToday()));
   const seasonStats = calcStats(myScores);
   const myTodayRank = profile
@@ -199,7 +208,7 @@ export default function HomePage() {
   const mySeasonRank = profile
     ? seasonBoard.findIndex((p) => p.id === profile.id) + 1
     : 0;
-  const currentBoard = boardView === "today" ? todayBoard : seasonBoard;
+  const currentBoard = boardView === "today" ? todayBoard : boardView === "season" ? seasonBoard : perGameBoard;
 
   // ─── Actions ───────────────────────────────────
   const handleSaveScore = async () => {
@@ -471,7 +480,11 @@ export default function HomePage() {
           <div style={{ padding: "0 24px 24px" }} className="animate-in">
             {/* Segmented control */}
             <div style={{ display: "flex", background: "var(--border-light)", borderRadius: 10, padding: 2, marginBottom: 16 }}>
-              {(["today", "season"] as const).map((v) => (
+              {([
+                { v: "today", label: "Today" },
+                { v: "season", label: "Season" },
+                { v: "pergame", label: "Per Game" },
+              ] as const).map(({ v, label }) => (
                 <button
                   key={v}
                   onClick={() => setBoardView(v)}
@@ -480,7 +493,7 @@ export default function HomePage() {
                     padding: "8px 0",
                     borderRadius: 8,
                     border: "none",
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: 600,
                     cursor: "pointer",
                     background: boardView === v ? "var(--card)" : "transparent",
@@ -488,7 +501,7 @@ export default function HomePage() {
                     boxShadow: boardView === v ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
                   }}
                 >
-                  {v === "today" ? "Today" : "Season"}
+                  {label}
                 </button>
               ))}
             </div>
@@ -503,12 +516,23 @@ export default function HomePage() {
               </div>
             ) : (
               <div style={{ background: "var(--card)", borderRadius: 16, padding: 20, border: "1px solid var(--border)" }}>
+                {/* Column headers */}
                 <div style={{ display: "flex", alignItems: "center", padding: "0 0 10px", borderBottom: "1px solid var(--border-light)" }}>
                   <span style={{ width: 32, fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.3px" }}>#</span>
                   <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.3px" }}>Player</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.3px", textAlign: "right", minWidth: 60 }}>W-L</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.3px", textAlign: "right", minWidth: 44 }}>PTS</span>
+                  {boardView === "pergame" ? (
+                    <>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.3px", textAlign: "right", minWidth: 52 }}>Win%</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.3px", textAlign: "right", minWidth: 44 }}>Avg</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.3px", textAlign: "right", minWidth: 60 }}>W-L</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.3px", textAlign: "right", minWidth: 44 }}>PTS</span>
+                    </>
+                  )}
                 </div>
+                {/* Rows */}
                 {currentBoard.map((p, i) => (
                   <div
                     key={p.id}
@@ -522,9 +546,25 @@ export default function HomePage() {
                     <span style={{ width: 32, fontSize: i < 3 ? 20 : 17, fontWeight: 700, color: i >= 3 ? "var(--text-secondary)" : undefined, flexShrink: 0 }}>
                       {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
                     </span>
-                    <span style={{ flex: 1, fontSize: 17, fontWeight: i < 3 ? 700 : 500 }}>{p.name}</span>
-                    <span style={{ fontSize: 15, color: "var(--text-secondary)", textAlign: "right", minWidth: 60 }}>{p.wins}-{p.losses}</span>
-                    <span style={{ fontSize: 22, fontWeight: 700, textAlign: "right", minWidth: 44 }}>{p.points}</span>
+                    {boardView === "season" ? (
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: 17, fontWeight: i < 3 ? 700 : 500, display: "block" }}>{p.name}</span>
+                        <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{p.weeks} wk{p.weeks !== 1 ? "s" : ""}</span>
+                      </div>
+                    ) : (
+                      <span style={{ flex: 1, fontSize: 17, fontWeight: i < 3 ? 700 : 500 }}>{p.name}</span>
+                    )}
+                    {boardView === "pergame" ? (
+                      <>
+                        <span style={{ fontSize: 15, fontWeight: 600, textAlign: "right", minWidth: 52 }}>{Math.round(p.winPct * 100)}%</span>
+                        <span style={{ fontSize: 22, fontWeight: 700, textAlign: "right", minWidth: 44 }}>{p.avgPtsPerGame.toFixed(1)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: 15, color: "var(--text-secondary)", textAlign: "right", minWidth: 60 }}>{p.wins}-{p.losses}</span>
+                        <span style={{ fontSize: 22, fontWeight: 700, textAlign: "right", minWidth: 44 }}>{p.points}</span>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
