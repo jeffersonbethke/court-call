@@ -47,18 +47,7 @@ export default function LoginPage() {
       }}
     >
       <div className="animate-in">
-        <div style={{ marginBottom: 16 }}>
-          <svg width="52" height="52" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="18" fill="#D4E84A" stroke="#5a6b00" strokeWidth="1.5" />
-            <circle cx="13" cy="13" r="2.4" fill="#5a6b00" opacity="0.45" />
-            <circle cx="27" cy="13" r="2.4" fill="#5a6b00" opacity="0.45" />
-            <circle cx="20" cy="20" r="2.4" fill="#5a6b00" opacity="0.45" />
-            <circle cx="13" cy="27" r="2.4" fill="#5a6b00" opacity="0.45" />
-            <circle cx="27" cy="27" r="2.4" fill="#5a6b00" opacity="0.45" />
-            <circle cx="20" cy="11" r="2.4" fill="#5a6b00" opacity="0.45" />
-            <circle cx="20" cy="29" r="2.4" fill="#5a6b00" opacity="0.45" />
-          </svg>
-        </div>
+        <img src="/logo.png" alt="Leipers Fork Pickleball Club mascot" style={{ width: 90, height: 90, objectFit: "contain", marginBottom: 12 }} />
         <h1
           style={{
             fontSize: 28,
