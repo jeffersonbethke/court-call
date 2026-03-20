@@ -33,17 +33,22 @@ export default function SignupPage() {
     setError("");
 
     // Step 1: Create user via server-side admin API (no email sent at all)
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim(), password }),
-    });
-
-    const result = await res.json();
-
-    if (!res.ok) {
+    let result: { error?: string; userId?: string };
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      result = await res.json();
+      if (!res.ok) {
+        setLoading(false);
+        setError(result.error ?? "Signup failed. Try again.");
+        return;
+      }
+    } catch {
       setLoading(false);
-      setError(result.error ?? "Signup failed. Try again.");
+      setError("Network error. Try again.");
       return;
     }
 
