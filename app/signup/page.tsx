@@ -37,28 +37,45 @@ export default function SignupPage() {
       password,
     });
 
-    if (signUpError) {
+    // If the only error is a failed confirmation email, the account was still
+    // created — sign in directly to get a session and proceed normally.
+    const emailSendFailed =
+      signUpError?.message?.toLowerCase().includes("error sending confirmation email") ||
+      signUpError?.message?.toLowerCase().includes("sending confirmation email");
+
+    if (signUpError && !emailSendFailed) {
       setLoading(false);
       setError(signUpError.message);
       return;
     }
 
-    if (!data.user) {
+    let userId = data?.user?.id;
+
+    if (emailSendFailed || !userId) {
+      // Account exists but no session — sign in to establish one
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (signInError || !signInData.user) {
+        setLoading(false);
+        setError("Account created. Please sign in.");
+        router.push("/login");
+        return;
+      }
+      userId = signInData.user.id;
+    }
+
+    if (!userId) {
       setLoading(false);
       setError("Something went wrong. Try again.");
       return;
     }
 
     // Create profile with display name
-    const { error: profileError } = await supabase
+    await supabase
       .from("profiles")
-      .upsert({ id: data.user.id, name: displayName.trim() }, { onConflict: "id" });
-
-    if (profileError) {
-      setLoading(false);
-      setError("Account created but failed to save your name. Please try logging in.");
-      return;
-    }
+      .upsert({ id: userId, name: displayName.trim() }, { onConflict: "id" });
 
     router.push("/");
   };
