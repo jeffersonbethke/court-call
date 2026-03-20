@@ -5,48 +5,65 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const supabase = createClient();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password || loading) return;
+    if (!email.trim() || !password || !confirmPassword || !displayName.trim() || loading) return;
+
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
 
     setLoading(true);
     setError("");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
     });
 
-    if (error) {
+    if (signUpError) {
       setLoading(false);
-      setError("Invalid email or password.");
+      setError(signUpError.message);
       return;
     }
 
-    // Check if profile exists with a name
-    if (data.user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("name")
-        .eq("id", data.user.id)
-        .single();
+    if (!data.user) {
+      setLoading(false);
+      setError("Something went wrong. Try again.");
+      return;
+    }
 
-      if (!profile?.name) {
-        router.push("/onboarding");
-        return;
-      }
+    // Create profile with display name
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .upsert({ id: data.user.id, name: displayName.trim() }, { onConflict: "id" });
+
+    if (profileError) {
+      setLoading(false);
+      setError("Account created but failed to save your name. Please try logging in.");
+      return;
     }
 
     router.push("/");
   };
+
+  const canSubmit = email.trim() && password && confirmPassword && displayName.trim() && !loading;
 
   return (
     <div
@@ -71,11 +88,8 @@ export default function LoginPage() {
             lineHeight: 1.2,
           }}
         >
-          Leipers Fork Pickleball Club
+          Create account
         </h1>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-          Court Call
-        </p>
         <p
           style={{
             fontSize: 17,
@@ -84,12 +98,42 @@ export default function LoginPage() {
             lineHeight: 1.4,
           }}
         >
-          Track your pickleball scores.
-          <br />
-          Compete with your crew.
+          Join Leipers Fork Pickleball Club.
         </p>
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleSignup}>
+          <label
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              display: "block",
+              marginBottom: 8,
+            }}
+          >
+            Display name
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. Mike"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            autoFocus
+            required
+            maxLength={20}
+            style={{
+              width: "100%",
+              padding: 16,
+              borderRadius: 14,
+              border: "1px solid var(--border)",
+              fontSize: 17,
+              outline: "none",
+              background: "var(--card)",
+              marginBottom: 16,
+            }}
+          />
           <label
             style={{
               fontSize: 13,
@@ -108,7 +152,6 @@ export default function LoginPage() {
             placeholder="you@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            autoFocus
             required
             style={{
               width: "100%",
@@ -148,6 +191,36 @@ export default function LoginPage() {
               fontSize: 17,
               outline: "none",
               background: "var(--card)",
+              marginBottom: 16,
+            }}
+          />
+          <label
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              display: "block",
+              marginBottom: 8,
+            }}
+          >
+            Confirm password
+          </label>
+          <input
+            type="password"
+            placeholder="••••••••"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            style={{
+              width: "100%",
+              padding: 16,
+              borderRadius: 14,
+              border: "1px solid var(--border)",
+              fontSize: 17,
+              outline: "none",
+              background: "var(--card)",
             }}
           />
           {error && (
@@ -157,7 +230,7 @@ export default function LoginPage() {
           )}
           <button
             type="submit"
-            disabled={!email.trim() || !password || loading}
+            disabled={!canSubmit}
             style={{
               width: "100%",
               marginTop: 16,
@@ -169,18 +242,18 @@ export default function LoginPage() {
               fontSize: 17,
               fontWeight: 600,
               cursor: "pointer",
-              opacity: email.trim() && password && !loading ? 1 : 0.3,
+              opacity: canSubmit ? 1 : 0.3,
               transition: "opacity 0.15s",
             }}
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Creating account..." : "Sign Up"}
           </button>
         </form>
 
         <p style={{ textAlign: "center", marginTop: 24, fontSize: 15, color: "var(--text-secondary)" }}>
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" style={{ color: "var(--text)", fontWeight: 600, textDecoration: "none" }}>
-            Sign Up
+          Already have an account?{" "}
+          <Link href="/login" style={{ color: "var(--text)", fontWeight: 600, textDecoration: "none" }}>
+            Sign In
           </Link>
         </p>
       </div>
