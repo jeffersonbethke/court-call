@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showForgot, setShowForgot] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -183,6 +184,47 @@ export default function LoginPage() {
             Sign Up
           </Link>
         </p>
+
+        <p style={{ textAlign: "center", marginTop: 12, fontSize: 15 }}>
+          <button
+            onClick={() => setShowForgot((v) => !v)}
+            style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 15, cursor: "pointer", padding: 0 }}
+          >
+            Forgot password?
+          </button>
+        </p>
+
+        {showForgot && (
+          <div
+            style={{
+              marginTop: 16,
+              padding: 20,
+              borderRadius: 14,
+              border: "1px solid var(--border)",
+              background: "var(--card)",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ fontSize: 15, lineHeight: 1.5, margin: "0 0 16px", color: "var(--text-secondary)" }}>
+              Just create a new account with your email and a new password. Your old scores will still be there.
+            </p>
+            <Link
+              href="/signup"
+              style={{
+                display: "inline-block",
+                padding: "12px 24px",
+                borderRadius: 12,
+                background: "#000",
+                color: "#FFF",
+                fontSize: 15,
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              Go to Sign Up
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
