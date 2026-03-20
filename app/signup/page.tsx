@@ -32,51 +32,39 @@ export default function SignupPage() {
     setLoading(true);
     setError("");
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    // Step 1: Create user via server-side admin API (no email sent at all)
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), password }),
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      setLoading(false);
+      setError(result.error ?? "Signup failed. Try again.");
+      return;
+    }
+
+    // Step 2: Sign in immediately to establish a session
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
 
-    // If the only error is a failed confirmation email, the account was still
-    // created — sign in directly to get a session and proceed normally.
-    const emailSendFailed =
-      signUpError?.message?.toLowerCase().includes("error sending confirmation email") ||
-      signUpError?.message?.toLowerCase().includes("sending confirmation email");
-
-    if (signUpError && !emailSendFailed) {
+    if (signInError || !signInData.user) {
       setLoading(false);
-      setError(signUpError.message);
+      setError("Account created but sign-in failed. Please go to Login.");
       return;
     }
 
-    let userId = data?.user?.id;
-
-    if (emailSendFailed || !userId) {
-      // Account exists but no session — sign in to establish one
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (signInError || !signInData.user) {
-        setLoading(false);
-        setError("Account created. Please sign in.");
-        router.push("/login");
-        return;
-      }
-      userId = signInData.user.id;
-    }
-
-    if (!userId) {
-      setLoading(false);
-      setError("Something went wrong. Try again.");
-      return;
-    }
-
-    // Create profile with display name
+    // Step 3: Save display name to profiles table
     await supabase
       .from("profiles")
-      .upsert({ id: userId, name: displayName.trim() }, { onConflict: "id" });
+      .upsert({ id: signInData.user.id, name: displayName.trim() }, { onConflict: "id" });
 
+    // Step 4: Go home
     router.push("/");
   };
 
